@@ -1,0 +1,11 @@
+import {Router} from "express"; import {authenticate,type AuthenticatedRequest} from "./auth.js"; import {AuthService} from "./services/auth.service.js"; import {TaskService} from "./services/task.service.js"; import {InMemoryTaskRepository} from "./repositories/task.repository.js"; import {validateBody,createTaskSchema,updateTaskSchema,tokenSchema} from "./validation.js"; import {unauthorized} from "./errors.js";
+const router=Router(); const auth=new AuthService(); const tasks=new TaskService(new InMemoryTaskRepository());
+const user=(req:AuthenticatedRequest)=>{if(!req.user)throw unauthorized();return req.user};
+router.post("/auth/token",validateBody(tokenSchema),async(req,res)=>res.json(await auth.token(req.body.email,req.body.password)));
+router.get("/users/me",authenticate,async(req:AuthenticatedRequest,res)=>res.json({data:user(req)}));
+router.get("/tasks",authenticate,async(req:AuthenticatedRequest,res)=>res.json({data:await tasks.list(user(req))}));
+router.post("/tasks",authenticate,validateBody(createTaskSchema),async(req:AuthenticatedRequest,res)=>res.status(201).json({data:await tasks.create(user(req),req.body)}));
+router.get("/tasks/:id",authenticate,async(req:AuthenticatedRequest,res)=>res.json({data:await tasks.get(req.params.id,user(req))}));
+router.patch("/tasks/:id",authenticate,validateBody(updateTaskSchema),async(req:AuthenticatedRequest,res)=>res.json({data:await tasks.update(req.params.id,user(req),req.body)}));
+router.delete("/tasks/:id",authenticate,async(req:AuthenticatedRequest,res)=>{await tasks.delete(req.params.id,user(req));res.status(204).send()});
+export default router;

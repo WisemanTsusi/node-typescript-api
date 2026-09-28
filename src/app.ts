@@ -1,0 +1,3 @@
+import express from "express"; import cors from "cors"; import helmet from "helmet"; import {config} from "./config.js"; import router from "./routes.js"; import {accessLog,errorHandler,notFoundHandler,requestId} from "./middleware.js";
+export const app=express(); app.disable("x-powered-by"); app.use(helmet()); app.use(cors({origin:config.CORS_ORIGIN==="*" ? true:config.CORS_ORIGIN})); app.use(express.json({limit:"1mb"})); app.use(requestId); app.use(accessLog);
+app.get("/health",(_req,res)=>res.json({status:"ok",service:"node-typescript-api"})); app.get("/ready",(_req,res)=>res.json({status:"ready"})); app.get("/openapi.json",(_req,res)=>res.sendFile("openapi.json",{root:process.cwd()})); app.use("/api/v1",router); app.use(notFoundHandler); app.use(errorHandler);

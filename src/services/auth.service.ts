@@ -1,0 +1,2 @@
+import {issueToken} from "../auth.js"; import {unauthorized} from "../errors.js"; import {InMemoryUserRepository} from "../repositories/user.repository.js";
+export class AuthService{constructor(private users=new InMemoryUserRepository()){} async token(email:string,password:string){if(password!=="change-me")throw unauthorized("Invalid credentials");const user=await this.users.findByEmail(email);if(!user)throw unauthorized("Invalid credentials");return{accessToken:await issueToken(user),tokenType:"Bearer" as const,expiresIn:3600}}}

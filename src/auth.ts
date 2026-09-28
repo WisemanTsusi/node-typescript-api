@@ -1,0 +1,6 @@
+import {SignJWT,jwtVerify} from "jose"; import type {Request,Response,NextFunction} from "express"; import {config} from "./config.js"; import {unauthorized} from "./errors.js"; import type {Role,User} from "./types.js"; import {InMemoryUserRepository} from "./repositories/user.repository.js";
+const secret=new TextEncoder().encode(config.JWT_SECRET); const users=new InMemoryUserRepository();
+export interface AuthenticatedRequest extends Request{user?:User}
+export async function issueToken(user:User){return new SignJWT({role:user.role,email:user.email}).setProtectedHeader({alg:"HS256",typ:"JWT"}).setSubject(user.id).setIssuedAt().setExpirationTime("1h").sign(secret)}
+export async function authenticate(req:AuthenticatedRequest,_res:Response,next:NextFunction){try{const h=req.header("authorization");if(!h?.startsWith("Bearer "))throw unauthorized();const {payload}=await jwtVerify(h.slice(7),secret);if(typeof payload.sub!=="string")throw unauthorized();const user=await users.findById(payload.sub);if(!user)throw unauthorized();req.user=user;next()}catch{next(unauthorized())}}
+export function requireRole(...roles:Role[]){return(req:AuthenticatedRequest,_res:Response,next:NextFunction)=>{if(!req.user||!roles.includes(req.user.role)){next(unauthorized("A valid role is required"));return}next()}}
